@@ -62,7 +62,7 @@ const HouseholdDashboard: React.FC<HouseholdDashboardProps> = ({ household, onLo
                 )}
             </div>
         </div>
-
+        
         <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2"><RupeeIcon className="h-6 w-6"/> Payment History</h3>
             <PaymentHistory payments={household.paymentHistory} />

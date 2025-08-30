@@ -1,5 +1,5 @@
-
 import { type Household, type Payment, PaymentStatus, type Driver, type Helper, StaffRole } from '../types';
+import { MONTHLY_HOUSEHOLD_FEE } from '../constants';
 
 const households: Household[] = [];
 const TOTAL_HOUSEHOLDS = 2500;
@@ -151,4 +151,20 @@ export const addStaff = async (newStaffData: Omit<Driver, 'id'> | Omit<Helper, '
     };
     staffList.push(newStaff as any);
     return withLatency(newStaff);
+};
+
+export const sendSmsReminders = async (dueHouseholds: Household[]): Promise<number> => {
+    console.log(`[SMS SIMULATION] Starting to send ${dueHouseholds.length} reminders.`);
+    const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    dueHouseholds.forEach(household => {
+        const message = `Dear ${household.name}, this is a reminder that your SBM waste collection fee of ₹${MONTHLY_HOUSEHOLD_FEE} for ${currentMonth} is due. Please make the payment soon to ensure uninterrupted service.`;
+        console.log(`[SMS SIMULATION] To: ${household.phone} | Message: ${message}`);
+    });
+
+    // Simulate network latency for the entire batch operation
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    console.log(`[SMS SIMULATION] Finished sending reminders.`);
+    return withLatency(dueHouseholds.length);
 };

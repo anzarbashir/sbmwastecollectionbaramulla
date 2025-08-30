@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { type Admin, type Household, PaymentStatus, type Driver, type Helper, StaffRole } from '../types';
-import { getHouseholds, addHousehold, updateHousehold, getDrivers, getHelpers, addStaff, updateStaff } from '../services/dataService';
+import { getHouseholds, addHousehold, updateHousehold, getDrivers, getHelpers, addStaff, updateStaff, sendSmsReminders } from '../services/dataService';
 import { MONTHLY_HOUSEHOLD_FEE, MONTHLY_COMMERCIAL_INCOME, TOTAL_SALARIES } from '../constants';
-import { RupeeIcon, UserGroupIcon, ClockIcon, LogoutIcon, PlusIcon, UsersIcon, EditIcon, ArrowLeftIcon } from './icons/Icons';
+import { RupeeIcon, UserGroupIcon, ClockIcon, LogoutIcon, PlusIcon, UsersIcon, EditIcon, ArrowLeftIcon, BellIcon } from './icons/Icons';
 import DashboardCard from './DashboardCard';
 import HouseholdTable from './HouseholdTable';
 import Modal from './Modal';
@@ -30,6 +30,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
   const [editingEntity, setEditingEntity] = useState<Household | Driver | Helper | null>(null);
   const [entityType, setEntityType] = useState<EntityType | null>(null);
   const [viewingHousehold, setViewingHousehold] = useState<Household | null>(null);
+  const [isSendingReminders, setIsSendingReminders] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -106,6 +107,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
         alert(`Failed to save ${entityType}.`);
     }
   };
+
+   const handleSendReminders = async () => {
+        const dueHouseholds = households.filter(h => h.status === PaymentStatus.Due);
+        if (dueHouseholds.length === 0) {
+            alert("All household payments are up to date. No reminders sent.");
+            return;
+        }
+
+        setIsSendingReminders(true);
+        try {
+            const count = await sendSmsReminders(dueHouseholds);
+            alert(`Successfully sent payment reminders to ${count} households.`);
+        } catch (error) {
+            console.error("Failed to send reminders:", error);
+            alert("An error occurred while sending reminders. Please check the console.");
+        } finally {
+            setIsSendingReminders(false);
+        }
+    };
 
   const modalTitle = useMemo(() => {
     if (!entityType) return '';
@@ -216,13 +236,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
                     <div className="bg-white p-6 rounded-lg shadow">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-semibold text-gray-800">Household Records</h2>
-                            <button
-                                onClick={() => handleOpenModal(null, 'household')}
-                                className="flex items-center gap-2 bg-brand-green-600 text-white px-4 py-2 rounded-lg hover:bg-brand-green-700 transition-colors shadow"
-                            >
-                                <PlusIcon className="h-5 w-5" />
-                                <span>Add Household</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleSendReminders}
+                                    disabled={isSendingReminders || metrics.pendingHouseholds === 0}
+                                    className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors shadow disabled:bg-gray-400"
+                                >
+                                    <BellIcon className="h-5 w-5" />
+                                    <span>{isSendingReminders ? 'Sending...' : 'Send Reminders'}</span>
+                                </button>
+                                <button
+                                    onClick={() => handleOpenModal(null, 'household')}
+                                    className="flex items-center gap-2 bg-brand-green-600 text-white px-4 py-2 rounded-lg hover:bg-brand-green-700 transition-colors shadow"
+                                >
+                                    <PlusIcon className="h-5 w-5" />
+                                    <span>Add Household</span>
+                                </button>
+                            </div>
                         </div>
                         <HouseholdTable households={households} onEdit={(h) => handleOpenModal(h, 'household')} onViewDetails={handleViewDetails} />
                     </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { type Driver, type Household, PaymentStatus } from '../types';
 import { getHouseholds, updateHousehold } from '../services/dataService';
@@ -19,12 +20,14 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, onLogout }) =
   useEffect(() => {
     getHouseholds()
       .then(allHouseholds => {
-        const assignedHouseholds = allHouseholds.filter(h => h.assignedRoute === driver.assignedRoute);
-        setHouseholds(assignedHouseholds);
+        // Fetch all households to show only those on the assigned route
+        setHouseholds(allHouseholds);
       })
       .catch(err => console.error("Failed to fetch households", err))
       .finally(() => setLoading(false));
-  }, [driver.assignedRoute]);
+  }, []);
+  
+  const assignedHouseholds = households.filter(h => h.assignedRoute === driver.assignedRoute);
 
   const handleStatusChange = async (household: Household, newStatus: PaymentStatus) => {
     setUpdatingId(household.id);
@@ -35,7 +38,7 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, onLogout }) =
       if (newStatus === PaymentStatus.Paid) {
         const alreadyPaid = household.paymentHistory.some(p => p.month === currentMonth);
         if (!alreadyPaid) {
-          updatedPaymentHistory.push({
+          updatedPaymentHistory.unshift({ // Add to the beginning of the list
             id: `receipt-${household.id}-${Date.now()}`,
             date: new Date(),
             amount: MONTHLY_HOUSEHOLD_FEE,
@@ -73,7 +76,7 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, onLogout }) =
   
   const renderHouseholdList = () => (
      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2"><HomeIcon className="h-6 w-6"/> Households on Your Route ({households.length})</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2"><HomeIcon className="h-6 w-6"/> Households on Your Route ({assignedHouseholds.length})</h3>
         {loading ? (
           <p className="text-center py-4 text-gray-500">Loading households...</p>
         ) : (
@@ -89,7 +92,7 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, onLogout }) =
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {households.map(h => (
+                {assignedHouseholds.map(h => (
                   <tr key={h.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedHousehold(h)}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{h.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{h.address}</td>
@@ -112,7 +115,7 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, onLogout }) =
                 ))}
               </tbody>
             </table>
-            {households.length === 0 && !loading && <p className="text-center py-4 text-gray-500">No households assigned to this route.</p>}
+            {assignedHouseholds.length === 0 && !loading && <p className="text-center py-4 text-gray-500">No households assigned to this route.</p>}
           </div>
         )}
       </div>
