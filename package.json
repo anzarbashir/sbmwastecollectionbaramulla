@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "[my-framework] build --output public"
+",
     "preview": "vite preview"
   },
   "dependencies": {
